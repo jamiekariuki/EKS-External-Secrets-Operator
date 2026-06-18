@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- range $k, $v := .Values.backend.labels }}
+    {{ $k }}: {{ $v }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- range $k, $v := .Values.backend.labels }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- range $k, $v := .Values.backend.labels }}
+        {{ $k }}: {{ $v }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ .Values.backend.serviceAccountName | default "default" }}
+      containers:
+        - name: {{ .Values.backend.name }}
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.containerPort }}
+          resources:
+            requests:
+              cpu: {{ .Values.backend.resources.requests.cpu }}
+              memory: {{ .Values.backend.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.backend.resources.limits.cpu }}
+              memory: {{ .Values.backend.resources.limits.memory }} 
+          envFrom:
+            - secretRef:
+                name: {{ .Values.backend.envFrom.secretRef.name }} 
+            - configMapRef:
+                name: {{ .Values.dbConfig.name }}
+             
+
+

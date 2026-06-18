@@ -1,0 +1,26 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.app.HTTPRoute.name }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.app.HTTPRoute.syncWaves | quote }} 
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.gateway.name }}          
+      namespace: {{ .Values.gateway.namespace }} 
+  hostnames:
+    - {{ .Values.app.HTTPRoute.hostName }}           
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.app.HTTPRoute.path }}      
+      backendRefs:
+        - group: ''	
+          kind: Service
+          name: {{ .Values.app.HTTPRoute.serviceName }} 
+          port: {{ .Values.app.HTTPRoute.port }}
+          weight: 1

@@ -1,0 +1,16 @@
+namespace: dev
+frontend:
+  image:
+    tag: v0.1.35
+backend:
+  image:
+    tag: v0.1.24
+config:
+  host: dev-db.c0nu6occexai.us-east-1.rds.amazonaws.com
+app:
+  HTTPRoute:
+    name: dev-app-route
+    hostName: "dev.example.com"
+externalSecret:
+  remoteRef:
+    key: arn:aws:secretsmanager:us-east-1:466872246229:secret:rds!db-af91fbb1-35d5-4750-89ea-724be13ddc24-rJNfy5

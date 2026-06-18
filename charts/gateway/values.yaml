@@ -1,0 +1,10 @@
+gatewayClass:
+  name: eg
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  syncWaves: "0"
+
+gateway:
+  name: eg
+  namespace: gateway
+  syncWaves: "5"
+

@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.esoCrd.name }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.esoCrd.syncWaves | quote }}
+    argocd.argoproj.io/hook: {{ .Values.esoCrd.hook }}
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.esoCrd.repoURL }}
+    chart: {{ .Values.esoCrd.chart }}
+    targetRevision: {{ .Values.esoCrd.version }}
+    helm:
+      values: |
+        serviceAccount:
+          create: false
+          name: external-secrets-sa
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.esoCrd.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - Validate=false
+    - ServerSideApply=true
+    - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.gatewayCrd.name }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.gatewayCrd.syncWaves | quote }}
+    argocd.argoproj.io/hook: {{ .Values.gatewayCrd.hook }}
+spec:
+  project: default
+  source:
+    repoURL: {{ .Values.gatewayCrd.repoURL }}
+    chart: {{ .Values.gatewayCrd.chart }}
+    targetRevision: {{ .Values.gatewayCrd.version }}
+ #   helm:
+ #     values: |
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.gatewayCrd.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - Validate=false
+    - ServerSideApply=true
+    - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

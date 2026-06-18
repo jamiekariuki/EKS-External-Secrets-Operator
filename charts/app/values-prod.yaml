@@ -1,0 +1,19 @@
+namespace: prod
+  
+frontend:
+  image:
+    tag: v0.1.30
+backend:
+  image:
+    tag: v0.1.16
+
+config:
+  host: empty
+
+app:
+  HTTPRoute:
+    name: prod-app-route
+    hostName: "prod.example.com" 
+externalSecret:
+  remoteRef:
+    key: arn:aws:secretsmanager:us-east-1:466872246229:secret:rds!db-01cbfbc8-9e69-4556-8968-5684a2ffb86e-8jD5rK

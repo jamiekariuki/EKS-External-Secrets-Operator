@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.frontend.service.name}}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- range $k, $v := .Values.frontend.labels }}
+    {{ $k }}: {{ $v }}
+    {{- end }}
+spec:
+  type: {{ .Values.frontend.service.type | default "NodePort" }}
+  selector:
+    {{- range $k, $v := .Values.frontend.labels }}
+    {{ $k }}: {{ $v }}
+    {{- end }}
+  ports:
+    - name: http
+      port: {{ .Values.frontend.service.port | default 80 }}
+      targetPort: {{ .Values.frontend.containerPort }}
+      {{- if .Values.frontend.service.nodePort }}
+      nodePort: {{ .Values.frontend.service.nodePort }}
+      {{- end }}
+

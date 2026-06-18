@@ -1,0 +1,16 @@
+gateway:
+  name: eg
+  namespace: gateway
+
+namespace: argocd
+
+argocd:
+  HTTPRoute:
+    name: argocd-route
+    syncWaves: "1"
+    hostName: "argocd.example.com"
+    path: /
+    serviceName: argocd-server
+    port: 80
+
+

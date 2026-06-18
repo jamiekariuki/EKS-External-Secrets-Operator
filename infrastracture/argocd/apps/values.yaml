@@ -1,0 +1,59 @@
+repoURL: "https://jamiekariuki/EKS-External-Secrets-Operator.git"
+
+targetRevision: main
+#=======================================================
+#                      app   
+#======================================================
+app:
+  path: app
+  values:
+    dev: values-dev.yaml
+    stage: values-stage.yaml
+    prod: values-prod.yaml
+  hook: PostSync
+  syncWaves: "1"
+#=======================================================
+#                      controllers & CRDs 
+#=======================================================
+
+gatewayCrd:
+  name: gateway-api-crd
+  namespace: envoy-gateway-system
+  repoURL: oci://docker.io/envoyproxy/gateway-helm
+  chart: gateway-helm
+  version: "v1.6.1"
+  hook: PreSync
+  syncWaves: "-10"
+
+esoCrd:
+  name: eso-crd
+  namespace: external-secrets
+  repoURL: https://charts.external-secrets.io
+  chart: external-secrets
+  version: "v1.1.0"
+  hook: PreSync
+  syncWaves: "-10"
+  serviceAccount:
+    name: external-secrets-sa
+    irsaArn: 
+#=======================================================
+#                      resources                       
+#=======================================================
+gatewayCr:
+  name: gateway-api-cr
+  namespace: gateway
+  path: cluster-addons/gateway
+  hook: Sync
+  syncWaves: "-9" #2nd
+
+argocdCr:
+  name: argocd-cr
+  path: cluster-addons/argocd
+  hook: Sync
+  syncWaves: "-8"
+
+esoCr:
+  name: eso-cr
+  path: cluster-addons/eso
+  hook: Sync
+  syncWaves: "-8"
