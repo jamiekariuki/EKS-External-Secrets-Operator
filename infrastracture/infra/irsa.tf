@@ -1,53 +1,21 @@
-//iam policy for allowing read access to secrets from secret manager
-module "iam_policy" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-policy"
+# eso-sa, running in the "external-secrets" namespace, assumes this role and
+# can read exactly one secret: the RDS credentials above. Nothing else.
 
-  name        = "read-secretes-iam"
-  path        = "/"
-  description = "iam policy for allowing access to secrets from secret manager"
-
-  policy = <<-EOF
-    {
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Action": [
-            "secretsmanager:GetSecretValue",
-            "secretsmanager:DescribeSecret",
-            "secretsmanager:ListSecrets"
-          ],
-          "Effect": "Allow",
-          "Resource": "${module.db.db_instance_master_user_secret_arn}"
-        }
-      ]
-    }
-  EOF
-
-  tags = {
-    Environment = var.ENV_PREFIX
-    Terraform   = "true"
-  }
-}
-
-// iam role for service account (irsa) for eso
 module "external_secrets_irsa" {
-  source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
+  version = "~> 5.0"
 
   name = "external-secrets-irsa"
 
-  attach_external_secrets_policy        = false
-  external_secrets_secrets_manager_arns = ["${module.db.db_instance_master_user_secret_arn}"]
- 
+  attach_external_secrets_policy        = true
+  external_secrets_secrets_manager_arns = [module.secret_rds_credentials.secret_arn]
+
   oidc_providers = {
     this = {
       provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["external-secrets:eso-sa}"] 
+      namespace_service_accounts = ["external-secrets:eso-sa"]
     }
   }
 
-  policies = {
-    additional = module.iam_policy.arn
-  }
-  
-} 
-  
+  tags = local.common_tags
+}
