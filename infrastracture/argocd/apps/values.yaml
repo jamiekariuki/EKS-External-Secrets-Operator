@@ -4,14 +4,15 @@ targetRevision: main
 #=======================================================
 #                      app   
 #======================================================
+
 app:
-  path: app
-  values:
-    dev: values-dev.yaml
-    stage: values-stage.yaml
-    prod: values-prod.yaml
-  hook: PostSync
   syncWaves: "1"
+  frontend:
+    path: frontend  
+  backend:
+    path: backend
+   
+
 #=======================================================
 #                      controllers & CRDs 
 #=======================================================

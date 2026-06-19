@@ -11,10 +11,10 @@ spec:
   source:
     repoURL: {{ .Values.repoURL }}
     targetRevision: {{ .Values.targetRevision }}
-    path: {{ .Values.app.path }}
-    helm:
-      valueFiles:
-      - {{ .Values.app.values.dev }}
+    path: {{ .Values.app.frontend.path }}
+#    helm:
+#      valueFiles:
+#      - {{ .Values.app.values.dev }}
   destination:
     server: https://kubernetes.default.svc
     namespace: dev
