@@ -5,12 +5,12 @@ provider "aws" {
 
 # Get cluster info
 data "aws_eks_cluster" "default" {
-  name = var.cluster_name
+  name = local.name_prefix
 }
 
 # Get authentication token
 data "aws_eks_cluster_auth" "default" {
-  name = var.cluster_name
+  name = local.name_prefix
 }
 
 # Kubernetes provider

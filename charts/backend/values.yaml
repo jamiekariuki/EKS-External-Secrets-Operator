@@ -1,3 +1,5 @@
+namespace: dev
+
 #backend
 backend:
   name: backend

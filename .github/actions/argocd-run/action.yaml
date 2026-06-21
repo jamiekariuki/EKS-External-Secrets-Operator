@@ -1,0 +1,52 @@
+name: "ArgoCD Deploy"
+description: "Runs Terraform init and apply for ArgoCD module"
+
+inputs:
+  aws_access_key:
+    required: true
+  aws_secret_key:
+    required: true
+  region:
+    required: true
+  cluster_name:
+    required: true
+  aws_account_id:
+    required: true
+  directory:
+    required: true
+  tf_state_bucket:
+    required: true  
+
+runs:
+  using: "composite"
+  steps:
+  - uses: actions/checkout@v4
+
+  - uses: hashicorp/setup-terraform@v3
+
+  - uses: aws-actions/configure-aws-credentials@v2
+    with:
+      aws-access-key-id: ${{ inputs.aws_access_key }}
+      aws-secret-access-key: ${{ inputs.aws_secret_key }}
+      aws-region: ${{ inputs.region }}
+
+  - name: Terraform Init
+    working-directory: ${{inputs.directory}}
+    shell: bash
+    run: |
+      terraform init -upgrade \
+        -backend-config="bucket=${{ inputs.tf_state_bucket }}" \
+        -backend-config="key=networking/terraform.tfstate" \
+        -backend-config="region=${{ inputs.region }}" \
+        -backend-config="dynamodb_table=terraform-locks" \
+        -backend-config="encrypt=true"
+
+  - name: Terraform Apply
+    working-directory: ${{inputs.directory}}
+    shell: bash
+    run: |+
+      terraform apply -auto-approve -input=false \
+        -var="aws_account_id=${{ inputs.aws_account_id }}" \
+        -var="region=${{ inputs.region }}" \
+        -var="cluster_name=${{ inputs.cluster_name }}" \
+        

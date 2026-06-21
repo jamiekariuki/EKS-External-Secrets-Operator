@@ -1,61 +1,129 @@
-//frontend repository
-module "ecr-frontend" {
-  source = "terraform-aws-modules/ecr/aws"
+# ── ECR Repository ─────────────────────────────────────────────
+# Shared across dev and prod — created once, never re-created.
+# CI pushes tagged images here; both dev and prod ECS pull from this repo.
 
-  repository_name = "frontend-repository"
 
-  repository_force_delete = true
+module "ecr_frontend" {
+  source  = "terraform-aws-modules/ecr/aws"
+  version = "3.2.0"
+
+
+  repository_name = "${var.project}-frontend"
+
+  # MUTABLE — allows pushing new version tags and updating "latest".
+  repository_image_tag_mutability = "MUTABLE"
+
+  # Scan every image on push for CVEs.
+  repository_image_scan_on_push = true
+
+  # Never force-delete — this repo holds production images.
+  repository_force_delete = false
 
   repository_lifecycle_policy = jsonencode({
     rules = [
       {
-        rulePriority = 1,
-        description  = "Keep last 30 images",
+        # Keep last 30 tagged releases — covers multiple sprints of rollback history.
+        rulePriority = 1
+        description  = "Keep last 30 tagged releases for rollback"
         selection = {
-          tagStatus     = "tagged",
-          tagPrefixList = ["v"],
-          countType     = "imageCountMoreThan",
+          tagStatus     = "tagged"
+          tagPrefixList = ["v", "latest", "sha-"]
+          countType     = "imageCountMoreThan"
           countNumber   = 30
-        },
-        action = {
-          type = "expire"
         }
+        action = { type = "expire" }
+      },
+      {
+        # Untagged images are failed CI build artifacts — delete after 1 day.
+        rulePriority = 2
+        description  = "Delete untagged build artifacts after 1 day"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = { type = "expire" }
       }
     ]
   })
 
   tags = {
-    Terraform   = "true"
+    Project   = var.project
+    Terraform = "true"
+    ManagedBy = "terraform"
+    Shared    = "true"
   }
 }
 
-//backend repository
-module "ecr-backend" {
-  source = "terraform-aws-modules/ecr/aws"
 
-  repository_name = "backend-repository"
+# ── ECR Repository ─────────────────────────────────────────────
+# Shared across dev and prod — created once, never re-created.
+# CI pushes tagged images here; both dev and prod ECS pull from this repo.
 
-  repository_force_delete = true
- 
+
+module "ecr_backend" {
+  source  = "terraform-aws-modules/ecr/aws"
+  version = "3.2.0"
+
+
+  repository_name = "${var.project}-backend"
+
+  # MUTABLE — allows pushing new version tags and updating "latest".
+  repository_image_tag_mutability = "MUTABLE"
+
+  # Scan every image on push for CVEs.
+  repository_image_scan_on_push = true
+
+  # Never force-delete — this repo holds production images.
+  repository_force_delete = false
+
   repository_lifecycle_policy = jsonencode({
     rules = [
       {
-        rulePriority = 1,
-        description  = "Keep last 30 images",
+        # Keep last 30 tagged releases — covers multiple sprints of rollback history.
+        rulePriority = 1
+        description  = "Keep last 30 tagged releases for rollback"
         selection = {
-          tagStatus     = "tagged",
-          tagPrefixList = ["v"],
-          countType     = "imageCountMoreThan",
+          tagStatus     = "tagged"
+          tagPrefixList = ["v", "latest", "sha-"]
+          countType     = "imageCountMoreThan"
           countNumber   = 30
-        },
-        action = {
-          type = "expire"
         }
+        action = { type = "expire" }
+      },
+      {
+        # Untagged images are failed CI build artifacts — delete after 1 day.
+        rulePriority = 2
+        description  = "Delete untagged build artifacts after 1 day"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = { type = "expire" }
       }
     ]
   })
 
   tags = {
-    Terraform   = "true"
+    Project   = var.project
+    Terraform = "true"
+    ManagedBy = "terraform"
+    Shared    = "true"
   }
 }
+
+
+
+
+output "frontend_repository_url" {
+  value = module.ecr_frontend.repository_url
+}
+
+output "backend_repository_url" {
+  value = module.ecr_backend.repository_url
+}
+
+

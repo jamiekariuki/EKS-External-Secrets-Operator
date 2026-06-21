@@ -6,8 +6,21 @@ variable "region" {
   type = string
 }
 
-variable "cluster_name" {
+variable "project" {
   type = string
+  default = "crud"
 }
 
-#test
+variable "ENV_PREFIX" {
+    type = string
+
+    validation {
+      condition = contains(["dev", "stage", "prod"], var.ENV_PREFIX)
+      error_message = "provide an environment"
+    }
+
+    default = "dev"
+}
+
+
+

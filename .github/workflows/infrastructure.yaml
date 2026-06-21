@@ -1,0 +1,113 @@
+name: Create infrastructure
+
+on:
+  push:
+    branches: [ mainx ]
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment to deploy"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+        - dev
+        - stage
+        - prod
+
+permissions:
+  contents: write
+
+env:
+  ENVIRONMENT: dev #${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || (github.ref_name == 'release/dev' && 'dev' || github.ref_name == 'release/stage' && 'stage' || 'prod') }
+
+jobs:
+ 
+  # Step 1: Terraform Apply 
+  terraform:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/infrastructure-run
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.REGION }}
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        cluster_name: ${{ secrets.CLUSTER_NAME }}
+        db_username: ${{ secrets.DB_USERNAME }}
+        db_name: ${{ secrets.DB_NAME }}
+        service_account_name: ${{ secrets.SERVICE_ACCOUNT_NAME }}
+        environment: ${{ env.ENVIRONMENT }}
+        tf_state_bucket: ${{ secrets.TF_STATE_BUCKET }}
+        directory: infrastructure
+
+  tf-outputs:
+    runs-on: ubuntu-latest
+    needs: terraform
+    steps:
+    - uses: actions/checkout@v4
+    - name: Load TF Outputs from s3
+      uses: ./.github/actions/load-tf-outputs-s3
+      with:
+        environment: ${{ env.ENVIRONMENT }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+        aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  # inject outputs to our helm repo (secrets manager arn, db port,name,adress/host)
+  update-helm-chart-values:
+    runs-on: ubuntu-latest
+    needs: tf-outputs
+    steps:
+
+    - name: Checkout Current Repo
+      uses: actions/checkout@v4
+
+    - name: Load TF Outputs
+      uses: ./.github/actions/load-tf-outputs
+
+    - name: Checkout Helm Repo
+      uses: actions/checkout@v4
+      with:
+        repository: jamiekariuki/DevSecOps-helm-charts
+        token: ${{ secrets.HELM_REPO_PAT }}
+        ref: main
+
+    - name: Run update script
+      run: |
+        chmod +x ./.github/actions/scripts/update-helm.sh
+
+        .github/actions/scripts/update-helm.sh \
+          "${{ env.ENVIRONMENT }}" \
+          "${{ secrets.REGION }}" \
+          "${{ env.IRSA_ARN }}" \
+          "${{ env.SECRETSMANAGER_ARN }}" \
+          "${{ env.DB_INSTANCE_ADDRESS }}" \
+          "${{ env.DB_INSTANCE_NAME }}" \
+          "${{ env.DB_INSTANCE_PORT }}" \
+          "${{ env.FRONTEND_REPO_URL }}" \
+          "${{ env.BACKEND_REPO_URL }}" \
+          "${{ secrets.SERVICE_ACCOUNT_NAME }}"     
+
+
+  # Step 2: ArgoCD Apply 
+  argocd:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/argocd-run
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.REGION }}
+        cluster_name: ${{ secrets.CLUSTER_NAME }}
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        tf_state_bucket: ${{ secrets.TF_STATE_BUCKET }}
+        directory: argocd
+

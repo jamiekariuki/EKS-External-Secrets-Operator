@@ -1,0 +1,413 @@
+===== FILE: ./actions/argocd-run/action.yaml =====
+
+name: "ArgoCD Deploy"
+description: "Runs Terraform init and apply for ArgoCD module"
+
+inputs:
+  aws_access_key:
+    required: true
+  aws_secret_key:
+    required: true
+  region:
+    required: true
+  cluster_name:
+    required: true
+  aws_account_id:
+    required: true
+  directory:
+    required: true
+  tf_state_bucket:
+    required: true  
+
+runs:
+  using: "composite"
+  steps:
+  - uses: actions/checkout@v4
+
+  - uses: hashicorp/setup-terraform@v3
+
+  - uses: aws-actions/configure-aws-credentials@v2
+    with:
+      aws-access-key-id: ${{ inputs.aws_access_key }}
+      aws-secret-access-key: ${{ inputs.aws_secret_key }}
+      aws-region: ${{ inputs.region }}
+
+  - name: Terraform Init
+    working-directory: ${{inputs.directory}}
+    shell: bash
+    run: |
+      terraform init -upgrade \
+        -backend-config="bucket=${{ inputs.tf_state_bucket }}" \
+        -backend-config="key=networking/terraform.tfstate" \
+        -backend-config="region=${{ inputs.region }}" \
+        -backend-config="dynamodb_table=terraform-locks" \
+        -backend-config="encrypt=true"
+
+  - name: Terraform Apply
+    working-directory: ${{inputs.directory}}
+    shell: bash
+    run: |+
+      terraform apply -auto-approve -input=false \
+        -var="aws_account_id=${{ inputs.aws_account_id }}" \
+        -var="region=${{ inputs.region }}" \
+        -var="cluster_name=${{ inputs.cluster_name }}" \
+        
+
+
+===== FILE: ./actions/infrastructure-run/action.yaml =====
+
+name: "Terraform Deploy"
+description: "Runs Terraform init, workspace select, and apply with variables"
+
+inputs:
+  environment:
+    required: true
+  aws_access_key:
+    required: true
+  aws_secret_key:
+    required: true
+  region:
+    required: true
+  tf_state_bucket:
+    required: true  
+
+  aws_account_id:
+    required: true
+  cluster_name:
+    required: true
+  db_username:
+    required: true
+  db_name:
+    required: true
+  service_account_name:
+    required: true
+  directory:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+  - uses: actions/checkout@v4
+
+  - uses: hashicorp/setup-terraform@v3
+
+  - uses: aws-actions/configure-aws-credentials@v2
+    with:
+      aws-access-key-id: ${{ inputs.aws_access_key }}
+      aws-secret-access-key: ${{ inputs.aws_secret_key }}
+      aws-region: ${{ inputs.region }}
+
+  - name: Terraform Init
+    working-directory: ${{inputs.directory}}
+    shell: bash
+    run: |
+      terraform init -upgrade \
+        -backend-config="bucket=${{ inputs.tf_state_bucket }}" \
+        -backend-config="key=networking/terraform.tfstate" \
+        -backend-config="region=${{ inputs.region }}" \
+        -backend-config="dynamodb_table=terraform-locks" \ 
+        -backend-config="encrypt=true"
+
+  - name: Select Workspace
+    working-directory: ${{inputs.directory}}
+    shell: bash
+    run: terraform workspace select -or-create=true ${{ inputs.environment }}
+
+  - name: Terraform Apply
+    working-directory: ${{inputs.directory}}
+    shell: bash
+    run: |
+      terraform apply -auto-approve -input=false \
+        -var="aws_account_id=${{ inputs.aws_account_id }}" \
+        -var="region=${{ inputs.region }}" \
+        -var="cluster_name=${{ inputs.cluster_name }}" \
+        -var="db_username=${{ inputs.db_username }}" \
+        -var="db_name=${{ inputs.db_name }}" \
+        -var="service_account_name=${{ inputs.service_account_name }}" \
+        -var="ENV_PREFIX=${{ inputs.environment }}"
+
+
+===== FILE: ./actions/load-tf-outputs/action.yaml =====
+
+name: Load TF Outputs
+description: Downloads Terraform outputs artifact and loads them into environment variables
+
+runs:
+  using: "composite"
+  steps:
+  - name: Download TF outputs artifact
+    uses: actions/download-artifact@v4
+    with:
+      name: tf-outputs
+      path: ./tf-data
+
+  - name: Load TF outputs into env
+    shell: bash
+    run: |
+      TF_OUTPUTS=./tf-data/tf-outputs.json
+
+      IRSA_ARN=$(jq -r .irsa_arn "$TF_OUTPUTS")
+      SECRETSMANAGER_ARN=$(jq -r .SecretsManager_arn "$TF_OUTPUTS")
+      DB_INSTANCE_ADDRESS=$(jq -r .db_instance_address "$TF_OUTPUTS")
+      DB_INSTANCE_NAME=$(jq -r .db_instance_name "$TF_OUTPUTS")
+      DB_INSTANCE_PORT=$(jq -r .db_instance_port "$TF_OUTPUTS")
+      FRONTEND_REPO_URL=$(jq -r .frontend_repository_url "$TF_OUTPUTS")
+      BACKEND_REPO_URL=$(jq -r .backend_repository_url "$TF_OUTPUTS")
+
+      echo "IRSA_ARN=$IRSA_ARN" >> $GITHUB_ENV
+      echo "SECRETSMANAGER_ARN=$SECRETSMANAGER_ARN" >> $GITHUB_ENV
+      echo "DB_INSTANCE_ADDRESS=$DB_INSTANCE_ADDRESS" >> $GITHUB_ENV
+      echo "DB_INSTANCE_NAME=$DB_INSTANCE_NAME" >> $GITHUB_ENV
+      echo "DB_INSTANCE_PORT=$DB_INSTANCE_PORT" >> $GITHUB_ENV
+      echo "FRONTEND_REPO_URL=$FRONTEND_REPO_URL" >> $GITHUB_ENV
+      echo "BACKEND_REPO_URL=$BACKEND_REPO_URL" >> $GITHUB_ENV
+
+
+===== FILE: ./actions/load-tf-outputs-s3/action.yaml =====
+
+name: "Load Terraform Outputs"
+description: "Fetches Terraform state from S3, extracts outputs, and uploads as artifact"
+
+inputs:
+  environment:
+    description: "Environment name (dev, stage, prod)"
+    required: true
+  aws-access-key-id:
+    description: "AWS Access Key ID"
+    required: true
+  aws-secret-access-key:
+    description: "AWS Secret Access Key"
+    required: true
+  aws-region:
+    description: "AWS Region"
+    default: "us-east-1"
+  aws-account-id:
+    description: "AWS Account ID"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+  - name: Install jq
+    run: sudo apt-get update && sudo apt-get install -y jq
+    shell: bash
+
+  - name: Debug AWS secret key
+    run: |
+      echo "Key length: ${#AWS_SECRET_ACCESS_KEY}"
+      echo -n "$AWS_SECRET_ACCESS_KEY" | od -c
+    shell: bash
+    env:
+      AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+
+  - name: Configure AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      aws-access-key-id: ${{ inputs.aws-access-key-id }}
+      aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+      aws-region: ${{ inputs.aws-region }}
+
+  - name: Download Terraform state
+    run: |
+      echo "Downloading state for environment: ${{ inputs.environment }}"
+      aws s3 cp "s3://${{ inputs.aws-account-id }}-state/env:/${{ inputs.environment }}/networking/terraform.tfstate" terraform.tfstate
+    shell: bash
+
+  - name: Extract outputs -> file
+    run: |
+      jq -r '{
+        irsa_arn:                .outputs.irsa_arn.value,
+        SecretsManager_arn:      .outputs.SecretsManager_arn.value,
+        db_instance_address:     .outputs.db_instance_address.value,
+        db_instance_name:        .outputs.db_instance_name.value,
+        db_instance_port:        .outputs.db_instance_port.value,
+        frontend_repository_url: .outputs.frontend_repository_url.value,
+        backend_repository_url:  .outputs.backend_repository_url.value
+      }' terraform.tfstate > tf-outputs.json
+
+      echo "Extracted terraform outputs:"
+      cat tf-outputs.json
+    shell: bash
+
+  - name: Upload TF outputs artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: tf-outputs
+      path: tf-outputs.json
+
+
+===== FILE: ./actions/scripts/update-eso.sh =====
+
+ #!/bin/bash
+set -e
+
+# INPUTS
+SERVICE_ACCOUNT_NAME="$1"
+IRSA_ARN="$2"
+HELM_CHART_PATH="$3"
+
+echo "Service account name: $SERVICE_ACCOUNT_NAME"
+echo "irsa arn: $IRSA_ARN"
+echo "Helm Chart Path: $HELM_CHART_PATH"
+
+if [ -z "$SERVICE_ACCOUNT_NAME" ] || [ -z "$IRSA_ARN" ]  || [ -z "$HELM_CHART_PATH" ] ; then
+  echo "ERROR: Missing required arguments."
+  exit 1
+fi
+
+#1. Ensure yq is available 
+if ! command -v yq &> /dev/null
+then
+    echo "Installing yq..."
+    sudo wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 -O /usr/bin/yq
+    sudo chmod +x /usr/bin/yq
+fi
+
+echo "Updating $HELM_CHART_PATH..."
+
+#2. Update values dynamically 
+
+#updating service account name
+yq -i ".esoCrd.serviceAccount.name = \"$SERVICE_ACCOUNT_NAME\"" "$HELM_CHART_PATH"
+#service account role-arn
+yq -i ".esoCrd.serviceAccount.irsaArn = \"$IRSA_ARN\"" "$HELM_CHART_PATH"
+
+#yq -i  '.serviceAccount.annotations["eks.amazonaws.com/role-arn"] = "'"$IRSA_ARN"'"'  "$HELM_CHART_PATH"
+
+
+#3. Commit & Push
+git config --global user.email "jamiekariuki18@gmail.com"
+git config --global user.name "bot2" #diffent name from  update helm 
+
+git add .
+
+if git diff --cached --quiet; then
+  echo "No changes to commit."
+else
+  git commit -m "update service account"
+
+  echo "Syncing with remote main before pushing..."
+  git pull --rebase origin main
+
+  git push
+fi
+
+
+
+===== FILE: ./workflows/infrastructure.yaml =====
+
+name: Create infrastructure
+
+on:
+  push:
+    branches: [ mainx ]
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment to deploy"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+        - dev
+        - stage
+        - prod
+
+permissions:
+  contents: write
+
+env:
+  ENVIRONMENT: dev #${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || (github.ref_name == 'release/dev' && 'dev' || github.ref_name == 'release/stage' && 'stage' || 'prod') }
+
+jobs:
+ 
+  # Step 1: Terraform Apply 
+  terraform:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/infrastructure-run
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.REGION }}
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        cluster_name: ${{ secrets.CLUSTER_NAME }}
+        db_username: ${{ secrets.DB_USERNAME }}
+        db_name: ${{ secrets.DB_NAME }}
+        service_account_name: ${{ secrets.SERVICE_ACCOUNT_NAME }}
+        environment: ${{ env.ENVIRONMENT }}
+        tf_state_bucket: ${{ secrets.TF_STATE_BUCKET }}
+        directory: infrastructure
+
+  tf-outputs:
+    runs-on: ubuntu-latest
+    needs: terraform
+    steps:
+    - uses: actions/checkout@v4
+    - name: Load TF Outputs from s3
+      uses: ./.github/actions/load-tf-outputs-s3
+      with:
+        environment: ${{ env.ENVIRONMENT }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+        aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  # inject outputs to our helm repo (secrets manager arn, db port,name,adress/host)
+  update-helm-chart-values:
+    runs-on: ubuntu-latest
+    needs: tf-outputs
+    steps:
+
+    - name: Checkout Current Repo
+      uses: actions/checkout@v4
+
+    - name: Load TF Outputs
+      uses: ./.github/actions/load-tf-outputs
+
+    - name: Checkout Helm Repo
+      uses: actions/checkout@v4
+      with:
+        repository: jamiekariuki/DevSecOps-helm-charts
+        token: ${{ secrets.HELM_REPO_PAT }}
+        ref: main
+
+    - name: Run update script
+      run: |
+        chmod +x ./.github/actions/scripts/update-helm.sh
+
+        .github/actions/scripts/update-helm.sh \
+          "${{ env.ENVIRONMENT }}" \
+          "${{ secrets.REGION }}" \
+          "${{ env.IRSA_ARN }}" \
+          "${{ env.SECRETSMANAGER_ARN }}" \
+          "${{ env.DB_INSTANCE_ADDRESS }}" \
+          "${{ env.DB_INSTANCE_NAME }}" \
+          "${{ env.DB_INSTANCE_PORT }}" \
+          "${{ env.FRONTEND_REPO_URL }}" \
+          "${{ env.BACKEND_REPO_URL }}" \
+          "${{ secrets.SERVICE_ACCOUNT_NAME }}"     
+
+
+  # Step 2: ArgoCD Apply 
+  argocd:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/argocd-run
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.REGION }}
+        cluster_name: ${{ secrets.CLUSTER_NAME }}
+        aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        tf_state_bucket: ${{ secrets.TF_STATE_BUCKET }}
+        directory: argocd
+
+
+

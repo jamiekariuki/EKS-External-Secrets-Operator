@@ -6,25 +6,10 @@ variable "region" {
   type = string
 }
 
-
-
 variable "project" {
   type = string
+  default = "crud"
 }
-
-
-//database
-variable "db_username" {
-  type = string
-  sensitive = true
-}
-
-variable "db_name" {
-  type = string
-  sensitive = true
-}
-
-
 
 variable "ENV_PREFIX" {
     type = string

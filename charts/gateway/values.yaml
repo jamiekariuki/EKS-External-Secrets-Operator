@@ -8,3 +8,13 @@ gateway:
   namespace: gateway
   syncWaves: "5"
 
+
+app:
+  HTTPRoute:
+    name: dev-app-route
+    syncWaves: "1"
+    hostName: "dev.example.com"
+    path: /
+    serviceName: frontend
+    port: 80  
+
