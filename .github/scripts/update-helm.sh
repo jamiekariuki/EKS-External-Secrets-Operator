@@ -61,16 +61,14 @@ fi
 # ── Frontend chart ────────────────────────────────────────────────────────────
 echo "Updating frontend values: ${FRONTEND_VALUES}"
 yq -i "
-  .global.region             = \"${REGION}\" |
-  .global.environment        = \"${ENVIRONMENT}\" |
+  
   .image.repository          = \"${FRONTEND_REPO_URL}\"
 " "$FRONTEND_VALUES"
 
 # ── Backend chart ─────────────────────────────────────────────────────────────
 echo "Updating backend values: ${BACKEND_VALUES}"
 yq -i "
-  .global.region             = \"${REGION}\" |
-  .global.environment        = \"${ENVIRONMENT}\" |
+
   .image.repository          = \"${BACKEND_REPO_URL}\"
 " "$BACKEND_VALUES"
 

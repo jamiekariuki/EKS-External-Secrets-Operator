@@ -12,7 +12,7 @@ module "secret_rds_credentials" {
   secret_string = jsonencode({
     username     = local.db_username
     password     = random_password.rds.result
-    host         = module.rds_crud.db_instance_address
+    host         = module.rds_crud.db_instance_address 
     port         = local.db_port
     dbname       = local.db_name
     engine       = "postgres"

@@ -8,9 +8,9 @@ targetRevision: main
 app:
   syncWaves: "1"
   frontend:
-    path: frontend  
+    path: charts/frontend  
   backend:
-    path: backend
+    path: charts/backend
    
 
 #=======================================================
@@ -43,18 +43,18 @@ esoCrd:
 gatewayCr:
   name: gateway-api-cr
   namespace: gateway
-  path: cluster-addons/gateway
+  path: charts/gateway
   hook: Sync
   syncWaves: "-9" #2nd
 
 argocdCr:
   name: argocd-cr
-  path: cluster-addons/argocd
+  path: charts/argocd
   hook: Sync
   syncWaves: "-8"
 
 esoCr:
   name: eso-cr
-  path: cluster-addons/eso
+  path: charts/eso
   hook: Sync
   syncWaves: "-8"
