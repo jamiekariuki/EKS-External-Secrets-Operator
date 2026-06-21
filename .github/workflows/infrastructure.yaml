@@ -187,8 +187,8 @@ jobs:
         run: |
           EXIT_CODE="${{ steps.plan.outputs.exit_code }}"
           echo "### Infra Plan — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          [ "$EXIT_CODE" == "0" ] && echo "✅ No infrastructure changes." >> $GITHUB_STEP_SUMMARY
-          [ "$EXIT_CODE" == "2" ] && echo "⚠️ Changes pending — review before applying." >> $GITHUB_STEP_SUMMARY
+          [ "$EXIT_CODE" == "0" ] && echo " No infrastructure changes." >> $GITHUB_STEP_SUMMARY
+          [ "$EXIT_CODE" == "2" ] && echo " Changes pending — review before applying." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "<details><summary>Plan output</summary>" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -250,7 +250,7 @@ jobs:
         if: success()
         working-directory: ${{ env.INFRA_DIR }}
         run: |
-          echo "### ✅ Infra Apply Complete — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Infra Apply Complete — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           terraform output -no-color 2>/dev/null || echo "No outputs."
@@ -380,8 +380,8 @@ jobs:
         run: |
           EXIT_CODE="${{ steps.plan.outputs.exit_code }}"
           echo "### ArgoCD Plan — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          [ "$EXIT_CODE" == "0" ] && echo "✅ No ArgoCD changes." >> $GITHUB_STEP_SUMMARY
-          [ "$EXIT_CODE" == "2" ] && echo "⚠️ Changes pending." >> $GITHUB_STEP_SUMMARY
+          [ "$EXIT_CODE" == "0" ] && echo " No ArgoCD changes." >> $GITHUB_STEP_SUMMARY
+          [ "$EXIT_CODE" == "2" ] && echo " Changes pending." >> $GITHUB_STEP_SUMMARY
           echo "<details><summary>Plan output</summary>" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat ${{ env.ARGOCD_DIR }}/plan_output.txt >> $GITHUB_STEP_SUMMARY
@@ -439,7 +439,7 @@ jobs:
       - name: Apply summary
         if: success()
         run: |
-          echo "### ✅ ArgoCD Apply Complete — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "### ArgoCD Apply Complete — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
 
   # ── Destroy ────────────────────────────────────────────────────────────────
   # Order matters: ArgoCD (helm_release app-of-apps) is torn down FIRST so
@@ -546,7 +546,7 @@ jobs:
       - name: Destroy summary
         if: always()
         run: |
-          echo "### 💀 Destroy Complete — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Destroy Complete — ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Phase | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
