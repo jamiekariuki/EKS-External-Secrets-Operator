@@ -20,3 +20,7 @@ module "external_secrets_irsa" {
 
   tags = local.common_tags
 }
+
+ output "irsa_arn" {
+  value = module.external_secrets_irsa.arn
+}

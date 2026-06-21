@@ -30,15 +30,11 @@ trap cleanup EXIT
 # ── Fetch state ───────────────────────────────────────────────────────────────
 echo "Fetching state: ${S3_PATH}"
 aws s3 cp "$S3_PATH" "$TMPSTATE"
-
+ 
 # ── Extract outputs ───────────────────────────────────────────────────────────
 echo "Extracting outputs..."
 jq '{
   irsa_arn:                .outputs.irsa_arn.value,
-  secrets_manager_arn:     .outputs.SecretsManager_arn.value,
-  db_instance_address:     .outputs.db_instance_address.value,
-  db_instance_name:        .outputs.db_instance_name.value,
-  db_instance_port:        (.outputs.db_instance_port.value | tostring),
   frontend_repository_url: .outputs.frontend_repository_url.value,
   backend_repository_url:  .outputs.backend_repository_url.value
 }' "$TMPSTATE" > "$OUTFILE"
@@ -50,10 +46,6 @@ cat "$OUTFILE"
 echo "Exporting to GITHUB_ENV..."
 {
   echo "IRSA_ARN=$(jq -r .irsa_arn "$OUTFILE")"
-  echo "SECRETS_MANAGER_ARN=$(jq -r .secrets_manager_arn "$OUTFILE")"
-  echo "DB_INSTANCE_ADDRESS=$(jq -r .db_instance_address "$OUTFILE")"
-  echo "DB_INSTANCE_NAME=$(jq -r .db_instance_name "$OUTFILE")"
-  echo "DB_INSTANCE_PORT=$(jq -r .db_instance_port "$OUTFILE")"
   echo "FRONTEND_REPO_URL=$(jq -r .frontend_repository_url "$OUTFILE")"
   echo "BACKEND_REPO_URL=$(jq -r .backend_repository_url "$OUTFILE")"
 } >> "$GITHUB_ENV"

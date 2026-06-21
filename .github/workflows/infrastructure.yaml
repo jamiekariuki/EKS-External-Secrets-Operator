@@ -292,13 +292,8 @@ jobs:
             "${{ github.event.inputs.environment }}" \
             "${{ secrets.AWS_REGION }}" \
             "${{ env.IRSA_ARN }}" \
-            "${{ env.SECRETS_MANAGER_ARN }}" \
-            "${{ env.DB_INSTANCE_ADDRESS }}" \
-            "${{ env.DB_INSTANCE_NAME }}" \
-            "${{ env.DB_INSTANCE_PORT }}" \
             "${{ env.FRONTEND_REPO_URL }}" \
             "${{ env.BACKEND_REPO_URL }}" \
-            "${{ secrets.SERVICE_ACCOUNT_NAME }}" \
             "./charts"
 
   # ── ArgoCD Plan ────────────────────────────────────────────────────────────
