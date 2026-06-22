@@ -11,8 +11,9 @@ secretStore:
 serviceAccount:
   name: external-secrets-sa
   namespace: external-secrets
-  roleArn: arn:aws:iam::466872246229:role/external-secrets-2026010410405734200000000d 
-
+  roleArn: arn:aws:iam::466872246229:role/external-secrets-2026010410405734200000000d
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::290488660393:role/external-secrets-irsa-20260622185328023000000012
 #external secrete
 externalSecret:
   secretStore:
@@ -21,4 +22,4 @@ externalSecret:
   target: db-credentials
   refreshInterval: 5m0s
   remoteRef:
-    key:  crud-dev/rds/credentials
+    key: crud-dev/rds/credentials

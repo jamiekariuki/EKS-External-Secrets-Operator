@@ -26,3 +26,5 @@ frontend:
     name: frontend
     type: ClusterIP
     port: 80
+image:
+  repository: 290488660393.dkr.ecr.us-east-1.amazonaws.com/eso-frontend

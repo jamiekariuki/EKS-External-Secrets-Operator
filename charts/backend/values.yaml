@@ -1,5 +1,4 @@
 namespace: dev
-
 #backend
 backend:
   name: backend
@@ -44,3 +43,5 @@ externalSecret:
   refreshInterval: 5m0s
   remoteRef:
     key: arn:aws:secretsmanager:us-east-1:466872246229:secret:rds!db-01cbfbc8-9e69-4556-8968-5684a2ffb86e-8jD5rK
+image:
+  repository: 290488660393.dkr.ecr.us-east-1.amazonaws.com/eso-backend
