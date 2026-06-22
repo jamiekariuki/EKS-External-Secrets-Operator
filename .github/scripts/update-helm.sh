@@ -61,7 +61,7 @@ fi
 # ── Frontend chart ────────────────────────────────────────────────────────────
 echo "Updating frontend values: ${FRONTEND_VALUES}"
 yq -i "
-  
+
   .image.repository          = \"${FRONTEND_REPO_URL}\"
 " "$FRONTEND_VALUES"
 
@@ -95,8 +95,13 @@ fi
 
 git commit -m "chore(${ENVIRONMENT}): sync terraform outputs [skip ci]"
 
-echo "Pulling latest before push..."
-git pull --rebase origin main
+# fetch + rebase instead of pull --rebase:
+# git pull --rebase aborts when unstaged changes exist in the working tree.
+# git fetch + git rebase only operates on committed history and does not care
+# about unstaged changes, so it works cleanly after our commit.
+echo "Syncing with remote before push..."
+git fetch origin main
+git rebase origin/main
 
 git push origin main
 echo "Helm values pushed successfully."
