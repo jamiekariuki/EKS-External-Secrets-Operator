@@ -73,12 +73,3 @@ module "rds_crud" {
   tags = local.common_tags
 }
 
-output "rds_endpoint" {
-  description = "RDS hostname"
-  value       = module.rds_kobo.db_instance_address
-}
-
-output "rds_port" {
-  description = "RDS port"
-  value       = module.rds_kobo.db_instance_port
-}
