@@ -12,7 +12,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 21.0"
 
-  name               = locals.name_prefix
+  name               = local.name_prefix
   kubernetes_version = "1.33"
 
   addons = {
@@ -54,7 +54,7 @@ module "eks" {
     }
   }
 
-  tags=locals.name_prefix
+  tags=local.name_prefix
 }
 
 
