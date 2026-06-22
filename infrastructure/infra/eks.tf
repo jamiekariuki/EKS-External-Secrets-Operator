@@ -54,7 +54,7 @@ module "eks" {
     }
   }
 
-  tags = local.name_prefix
+  tags = local.common_tags
 }
 
 
