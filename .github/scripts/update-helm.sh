@@ -95,10 +95,13 @@ fi
 
 git commit -m "chore(${ENVIRONMENT}): sync terraform outputs [skip ci]"
 
-# fetch + rebase instead of pull --rebase:
-# git pull --rebase aborts when unstaged changes exist in the working tree.
-# git fetch + git rebase only operates on committed history and does not care
-# about unstaged changes, so it works cleanly after our commit.
+# Discard any remaining unstaged changes before rebasing.
+# The runner working tree may have dirty files from earlier pipeline steps
+# (ci-secrets.tfvars, plan outputs, etc.) that were never meant to be committed.
+# Our helm changes are already committed above so discarding the rest is safe.
+echo "Cleaning working tree before sync..."
+git restore . 2>/dev/null || true
+
 echo "Syncing with remote before push..."
 git fetch origin main
 git rebase origin/main
