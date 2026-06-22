@@ -2,9 +2,11 @@
 # can read exactly one secret: the RDS credentials above. Nothing else.
 
 
+
+
 module "external_secrets_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
-  version = "~> 5.0"
+  version = "6.6.1"
 
   name = "external-secrets-irsa"
 
