@@ -62,20 +62,21 @@ fi
 echo "Updating frontend values: ${FRONTEND_VALUES}"
 yq -i "
 
-  .image.repository          = \"${FRONTEND_REPO_URL}\"
+  .frontend.image.repository          = \"${FRONTEND_REPO_URL}\"
 " "$FRONTEND_VALUES"
 
 # ── Backend chart ─────────────────────────────────────────────────────────────
 echo "Updating backend values: ${BACKEND_VALUES}"
 yq -i "
 
-  .image.repository          = \"${BACKEND_REPO_URL}\"
+  .backend.image.repository          = \"${BACKEND_REPO_URL}\"
 " "$BACKEND_VALUES"
 
 # ── ESO chart ─────────────────────────────────────────────────────────────────
 echo "Updating ESO values: ${ESO_VALUES}"
 yq -i "
-  .serviceAccount.annotations[\"eks.amazonaws.com/role-arn\"] = \"${IRSA_ARN}\"
+
+  .serviceAccount.roleArn = \"${IRSA_ARN}\"
 " "$ESO_VALUES"
 
 echo "All chart values updated."
@@ -87,7 +88,7 @@ git config --global user.email "ci-bot@github-actions"
 git config --global user.name  "CI Bot"
 
 git add "$CHARTS_DIR"
-
+ 
 if git diff --cached --quiet; then
   echo "No changes to commit — all values already up to date."
   exit 0

@@ -38,8 +38,7 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ .Values.backend.envFrom.secretRef.name }} 
-            - configMapRef:
-                name: {{ .Values.dbConfig.name }}
+           
              
 
 
