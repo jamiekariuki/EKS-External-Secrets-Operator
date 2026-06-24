@@ -11,6 +11,10 @@ variable "project" {
   default = "crud"
 }
 
+variable "iam_user" {
+  type = string
+}
+
 variable "ENV_PREFIX" {
     type = string
 

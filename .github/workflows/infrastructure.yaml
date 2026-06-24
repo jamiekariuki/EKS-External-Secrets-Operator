@@ -20,6 +20,7 @@
 #     AWS_REGION
 #     TF_STATE_BUCKET
 #     TF_LOCK_TABLE
+#     IAM_USER
 #     SERVICE_ACCOUNT_NAME  — ESO service account name
 #
 #   Environment secrets (dev / stage / prod):
@@ -130,6 +131,7 @@ jobs:
         run: |
           cat > ci-secrets.tfvars << EOF
           aws_account_id = "${{ secrets.AWS_ACCOUNT_ID }}"
+          iam_user = "${{ secrets.IAM_USER }}"
           EOF
 
       - name: Terraform Init
@@ -499,6 +501,7 @@ jobs:
         run: |
           cat > ci-secrets.tfvars << EOF
           aws_account_id = "${{ secrets.AWS_ACCOUNT_ID }}"
+          iam_user = "${{ secrets.IAM_USER }}"
           EOF
 
       - name: "[ArgoCD] Terraform Init"

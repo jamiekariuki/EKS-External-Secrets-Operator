@@ -54,6 +54,26 @@ module "eks" {
     }
   }
 
+  access_entries = {
+/*    github = {
+      principal_arn = aws_iam_role.github_oidc_provider_aws.arn
+    }
+*/
+    # One access entry with a policy associated
+    example = {
+      principal_arn = var.iam_user
+
+      policy_associations = {
+        example = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }  
+
   tags = local.common_tags
 }
 
