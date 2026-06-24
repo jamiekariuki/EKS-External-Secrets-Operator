@@ -7,7 +7,7 @@ backend:
     app: backend
     component: backend
   image:
-    repository: 466872246229.dkr.ecr.us-east-1.amazonaws.com/backend-repository
+    repository: 290488660393.dkr.ecr.us-east-1.amazonaws.com/eso-backend
     tag: "latest"
     pullPolicy: IfNotPresent
   containerPort: 8000
@@ -28,7 +28,6 @@ backend:
     name: backend
     type: ClusterIP
     port: 8000
-
 #external secrete
 externalSecret:
   secretStore:
@@ -38,4 +37,3 @@ externalSecret:
   refreshInterval: 5m0s
   remoteRef:
     key: eso-dev/rds/credentials
-

@@ -7,7 +7,7 @@ frontend:
     app: frontend
     component: frontend
   image:
-    repository: 466872246229.dkr.ecr.us-east-1.amazonaws.com/frontend-repository
+    repository: 290488660393.dkr.ecr.us-east-1.amazonaws.com/eso-frontend
     tag: "latest"
     pullPolicy: IfNotPresent
   containerPort: 80
@@ -26,4 +26,3 @@ frontend:
     name: frontend
     type: ClusterIP
     port: 80
-
