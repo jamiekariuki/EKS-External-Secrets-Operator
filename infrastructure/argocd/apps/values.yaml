@@ -1,4 +1,4 @@
-repoURL: "https://jamiekariuki/EKS-External-Secrets-Operator.git"
+repoURL: "https://github.com/jamiekariuki/EKS-External-Secrets-Operator.git"
 
 targetRevision: main
 #=======================================================
