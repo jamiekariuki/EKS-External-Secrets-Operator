@@ -11,7 +11,7 @@ secretStore:
 serviceAccount:
   name: external-secrets-sa
   namespace: external-secrets
-  roleArn: arn:aws:iam::290488660393:role/external-secrets-irsa-20260624170942202800000012
+  roleArn: arn:aws:iam::290488660393:role/external-secrets-irsa-0bf2ea6ba2067494cfbe32ca74
 #external secrete
 externalSecret:
   secretStore:
