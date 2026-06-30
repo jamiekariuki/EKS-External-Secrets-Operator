@@ -1,8 +1,23 @@
-# eso-sa, running in the "external-secrets" namespace, assumes this role and
-# can read exactly one secret: the RDS credentials above. Nothing else.
+# Namespace for ESO (skip this resource if it already exists / is managed elsewhere)
+resource "kubernetes_namespace" "external_secrets" {
+  metadata {
+    name = "external-secrets"
+  }
+}
 
+# The actual k8s ServiceAccount that ESO's pod will use.
+# The annotation is what lets EKS's webhook inject the IRSA credentials
+# (AWS_ROLE_ARN + AWS_WEB_IDENTITY_TOKEN_FILE) into the pod.
+resource "kubernetes_service_account" "external_secrets" {
+  metadata {
+    name      = "external-secrets-sa"
+    namespace = kubernetes_namespace.external_secrets.metadata[0].name
 
-
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.external_secrets_irsa.arn
+    }
+  }
+}
 
 module "external_secrets_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
@@ -23,6 +38,6 @@ module "external_secrets_irsa" {
   tags = local.common_tags
 }
 
- output "irsa_arn" {
+output "irsa_arn" {
   value = module.external_secrets_irsa.arn
 }
