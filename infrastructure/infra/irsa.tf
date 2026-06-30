@@ -18,7 +18,7 @@ resource "kubernetes_service_account" "external_secrets" {
     }
   }
 }
-
+ 
 module "external_secrets_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts"
   version = "6.6.1"
