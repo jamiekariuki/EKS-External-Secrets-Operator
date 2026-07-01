@@ -1,5 +1,4 @@
 namespace: dev
-
 #secrete store
 secretStore:
   name: cluster-secret-store
@@ -9,7 +8,6 @@ secretStore:
   serviceAccount:
     name: external-secrets-sa
     namespace: external-secrets
-
 #external secrete
 externalSecret:
   secretStore:
@@ -19,3 +17,5 @@ externalSecret:
   refreshInterval: 5m0s
   remoteRef:
     key: crud-dev/rds/credentials
+serviceAccount:
+  roleArn: arn:aws:iam::290488660393:role/external-secrets-irsa-f6a764ee4db719611a06b8b1a0
