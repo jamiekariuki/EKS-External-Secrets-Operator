@@ -10,7 +10,7 @@ backend:
     repository: 290488660393.dkr.ecr.us-east-1.amazonaws.com/eso-backend
     tag: "latest"
     pullPolicy: IfNotPresent
-  containerPort: 8000
+  containerPort: 8080
   serviceAccountName: default
   resources:
     requests:
@@ -27,7 +27,7 @@ backend:
   service:
     name: backend
     type: ClusterIP
-    port: 8000
+    port: 8080
 #external secrete
 externalSecret:
   secretStore:
