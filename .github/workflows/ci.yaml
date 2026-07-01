@@ -64,11 +64,11 @@ jobs:
 
           case "$SERVICE" in
             frontend)
-              echo "context_dir=frontend" >> "$GITHUB_OUTPUT"
+              echo "context_dir=app/frontend" >> "$GITHUB_OUTPUT"
               echo "ecr_repo=${ECR_REPO_FRONTEND}" >> "$GITHUB_OUTPUT"
               ;;
             backend)
-              echo "context_dir=backend" >> "$GITHUB_OUTPUT"
+              echo "context_dir=app/backend" >> "$GITHUB_OUTPUT"
               echo "ecr_repo=${ECR_REPO_BACKEND}" >> "$GITHUB_OUTPUT"
               ;;
             *)
