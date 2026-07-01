@@ -31,10 +31,10 @@ jobs:
   build-and-push:
     name: Build & Push (${{ github.event.inputs.service }})
     runs-on: ubuntu-latest
-    # Optional: gate this with a "production" Environment in repo settings
+    # Optional: gate this with a "dev" Environment in repo settings
     # (Settings -> Environments -> production) to require manual approval
     # before the job runs. Remove the line below if you don't want that gate.
-    environment: production
+    environment: dev
     timeout-minutes: 30
 
     steps:
