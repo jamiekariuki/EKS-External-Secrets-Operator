@@ -1,0 +1,130 @@
+name: Build and Push to ECR
+
+# Manually triggered from the Actions tab — pick frontend or backend from the dropdown.
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Which service to build and push"
+        required: true
+        type: choice
+        options:
+          - frontend
+          - backend
+      image_tag_override:
+        description: "Optional: custom image tag (defaults to short git SHA)"
+        required: false
+        type: string
+
+# Required for GitHub OIDC -> AWS role assumption. Keep this minimal.
+permissions:
+  id-token: write
+  contents: read
+
+# Prevent two deploys of the SAME service from running concurrently.
+# (A frontend run and a backend run can still run in parallel.)
+concurrency:
+  group: deploy-${{ github.event.inputs.service }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    name: Build & Push (${{ github.event.inputs.service }})
+    runs-on: ubuntu-latest
+    # Optional: gate this with a "production" Environment in repo settings
+    # (Settings -> Environments -> production) to require manual approval
+    # before the job runs. Remove the line below if you don't want that gate.
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN  }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: gha-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve build variables
+        id: vars
+        env:
+          SERVICE: ${{ github.event.inputs.service }}
+          IMAGE_TAG_OVERRIDE: ${{ github.event.inputs.image_tag_override }}
+          ECR_REPO_FRONTEND: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+          ECR_REPO_BACKEND: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+        run: |
+          set -euo pipefail
+
+          case "$SERVICE" in
+            frontend)
+              echo "context_dir=frontend" >> "$GITHUB_OUTPUT"
+              echo "ecr_repo=${ECR_REPO_FRONTEND}" >> "$GITHUB_OUTPUT"
+              ;;
+            backend)
+              echo "context_dir=backend" >> "$GITHUB_OUTPUT"
+              echo "ecr_repo=${ECR_REPO_BACKEND}" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::Unknown service '$SERVICE'"
+              exit 1
+              ;;
+          esac
+
+          if [[ -n "${IMAGE_TAG_OVERRIDE}" ]]; then
+            TAG="${IMAGE_TAG_OVERRIDE}"
+          else
+            TAG="${GITHUB_SHA:0:8}"
+          fi
+          echo "image_tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Sanity check Dockerfile exists
+        run: |
+          if [[ ! -f "${{ steps.vars.outputs.context_dir }}/Dockerfile" ]]; then
+            echo "::error::No Dockerfile found at ${{ steps.vars.outputs.context_dir }}/Dockerfile"
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ steps.vars.outputs.context_dir }}
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          tags: |
+            ${{ steps.vars.outputs.ecr_repo }}:${{ steps.vars.outputs.image_tag }}
+          cache-from: type=gha,scope=${{ github.event.inputs.service }}
+          cache-to: type=gha,mode=max,scope=${{ github.event.inputs.service }}
+
+      # "latest" is pushed as a separate, best-effort step. If tag immutability
+      # is enabled on your ECR repo, this step will fail on repeat runs — that's
+      # expected and safe to ignore, or just delete this step if you don't need
+      # a "latest" tag at all.
+      - name: Also tag and push :latest
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ steps.vars.outputs.ecr_repo }}:latest \
+            ${{ steps.vars.outputs.ecr_repo }}:${{ steps.vars.outputs.image_tag }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### Deployment Summary"
+            echo "- **Service:** ${{ github.event.inputs.service }}"
+            echo "- **ECR repository:** ${{ steps.vars.outputs.ecr_repo }}"
+            echo "- **Image tag:** \`${{ steps.vars.outputs.image_tag }}\`"
+            echo "- **Image digest:** \`${{ steps.build.outputs.digest }}\`"
+            echo "- **Commit:** \`${{ github.sha }}\`"
+            echo "- **Triggered by:** ${{ github.actor }}"
+          } >> "$GITHUB_STEP_SUMMARY"
