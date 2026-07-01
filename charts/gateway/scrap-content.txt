@@ -1,0 +1,139 @@
+===== FILE: ./Chart.yaml =====
+
+apiVersion: v2
+name: gateway
+description: A Helm chart for Kubernetes
+
+# A chart can be either an 'application' or a 'library' chart.
+#
+# Application charts are a collection of templates that can be packaged into versioned archives
+# to be deployed.
+#
+# Library charts provide useful utilities or functions for the chart developer. They're included as
+# a dependency of application charts to inject those utilities and functions into the rendering
+# pipeline. Library charts do not define any templates and therefore cannot be deployed.
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+# Versions are expected to follow Semantic Versioning (https://semver.org/)
+version: 0.1.0
+
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application. Versions are not expected to
+# follow Semantic Versioning. They should reflect the version the application is using.
+# It is recommended to use it with quotes.
+appVersion: "1.16.0"
+
+
+
+===== FILE: ./.helmignore =====
+
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching, and
+# negation (prefixed with !). Only one pattern per line.
+.DS_Store
+# Common VCS dirs
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+# Various IDEs
+.project
+.idea/
+*.tmproj
+.vscode/
+
+
+===== FILE: ./templates/gateway-class.yaml =====
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ .Values.gatewayClass.name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.gatewayClass.syncWaves | quote }}
+spec:
+  controllerName: {{ .Values.gatewayClass.controllerName }}
+
+===== FILE: ./templates/gateway.yaml =====
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gateway.name }}
+  namespace: {{ .Values.gateway.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.gateway.syncWaves | quote }}
+spec:
+  gatewayClassName: {{ .Values.gatewayClass.name }}
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: All
+
+===== FILE: ./templates/httproute.yaml =====
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.app.HTTPRoute.name }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.app.HTTPRoute.syncWaves | quote }} 
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.gateway.name }}          
+      namespace: {{ .Values.gateway.namespace }} 
+  hostnames:
+    - {{ .Values.app.HTTPRoute.hostName }}           
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.app.HTTPRoute.path }}      
+      backendRefs:
+        - group: ''	
+          kind: Service
+          name: {{ .Values.app.HTTPRoute.serviceName }} 
+          port: {{ .Values.app.HTTPRoute.port }}
+          weight: 1
+
+===== FILE: ./values.yaml =====
+
+gatewayClass:
+  name: eg
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  syncWaves: "0"
+
+gateway:
+  name: eg
+  namespace: gateway
+  syncWaves: "5"
+
+
+app:
+  HTTPRoute:
+    name: dev-app-route
+    syncWaves: "1"
+    hostName: "dev.example.com"
+    path: /
+    serviceName: frontend
+    port: 80  
+
+
+
