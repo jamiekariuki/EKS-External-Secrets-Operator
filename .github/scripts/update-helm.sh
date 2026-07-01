@@ -73,13 +73,13 @@ yq -i "
 " "$BACKEND_VALUES"
 
 # ── ESO chart ─────────────────────────────────────────────────────────────────
-echo "Updating ESO values: ${ESO_VALUES}"
-yq -i "
+#echo "Updating ESO values: ${ESO_VALUES}"
+#yq -i "
 
-  .serviceAccount.roleArn = \"${IRSA_ARN}\"
-" "$ESO_VALUES"
+#  .serviceAccount.roleArn = \"${IRSA_ARN}\"
+#" "$ESO_VALUES"
 
-echo "All chart values updated."
+#echo "All chart values updated."
 
 # ── Commit & push ─────────────────────────────────────────────────────────────
 # Stage only the charts directory — nothing else in the repo gets touched.

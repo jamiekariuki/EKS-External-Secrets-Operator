@@ -16,6 +16,5 @@ externalSecret:
   target: db-credentials
   refreshInterval: 5m0s
   remoteRef:
-    key: crud-dev/rds/credentials
-serviceAccount:
-  roleArn: arn:aws:iam::290488660393:role/external-secrets-irsa-f6a764ee4db719611a06b8b1a0
+    key: eso-dev/rds/credentials
+
