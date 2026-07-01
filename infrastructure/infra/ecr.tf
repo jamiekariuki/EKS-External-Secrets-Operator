@@ -16,7 +16,7 @@ module "ecr_frontend" {
   repository_image_scan_on_push = true
 
   # Never force-delete — this repo holds production images.
-  repository_force_delete = false
+  repository_force_delete = true
 
   repository_lifecycle_policy = jsonencode({
     rules = [
@@ -63,7 +63,7 @@ module "ecr_backend" {
   repository_image_scan_on_push = true
 
   # Never force-delete — this repo holds production images.
-  repository_force_delete = false
+  repository_force_delete = true
 
   repository_lifecycle_policy = jsonencode({
     rules = [

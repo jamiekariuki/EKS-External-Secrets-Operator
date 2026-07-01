@@ -11,4 +11,4 @@ spring:
       ddl-auto: update # better than create-drop for persistencehj
 
 cors:
-  allowed-origin: ${FRONTEND_ORIGIN}
+  allowed-origin: ${FRONTEND_ORIGIN}  
