@@ -115,6 +115,8 @@ spec:
 
 ===== FILE: ./values.yaml =====
 
+namespace: dev
+
 gatewayClass:
   name: eg
   controllerName: gateway.envoyproxy.io/gatewayclass-controller

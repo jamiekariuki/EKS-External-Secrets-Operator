@@ -8,13 +8,13 @@ gatewayClass:
 gateway:
   name: eg
   namespace: gateway
-  syncWaves: "5"
+  syncWaves: "1"
 
 
 app:
   HTTPRoute:
     name: dev-app-route
-    syncWaves: "1"
+    syncWaves: "2"
     hostName: "dev.example.com"
     path: /
     serviceName: frontend
